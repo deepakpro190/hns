@@ -17,7 +17,9 @@ app = FastAPI(title="Sales Prediction API")
 
 
 model = joblib.load("model.pkl")
-
+@app.get("/")
+def health():
+    return {"status": "ok"}
 # =============================
 # 4. Home Route
 # =============================
