@@ -37,7 +37,35 @@ jobs:
         echo "API failed to start"
         docker logs test-container
         exit 1
-
+    # 4.1. Model test
+    - name: Validate prediction value
+      run: |
+        response=$(curl -s -X POST http://localhost:8000/predict \
+        -H "Content-Type: application/json" \
+        -d '{
+          "Weight": 10,
+          "FatContent": "Low Fat",
+          "ProductVisibility": 0.05,
+          "ProductType": "Dairy",
+          "MRP": 200,
+          "OutletSize": "Medium",
+          "LocationType": "Tier 1",
+          "OutletType": "Supermarket Type1",
+          "Years_Operation": 10
+        }')
+    
+        echo $response
+    
+        # Extract number
+        pred=$(echo $response | grep -o '[0-9.]*')
+    
+        echo "Prediction: $pred"
+    
+        # Basic sanity check
+        if [ -z "$pred" ]; then
+          echo "No prediction returned"
+          exit 1
+        fi
     # 5. Show container logs (for debugging)
     - name: Show container logs
       run: docker logs test-container
