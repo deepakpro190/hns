@@ -5,29 +5,44 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
 
+    # 1. Checkout code
     - name: Checkout code
       uses: actions/checkout@v4
 
+    # 2. Build Docker image
     - name: Build Docker Image
-      run: docker build -t sales-api .
+      run: docker build --no-cache -t sales-api .
 
+    # 3. Run container
     - name: Run Container
-      run: docker run -d -p 8000:8000 sales-api
+      run: docker run -d -p 8000:8000 --name test-container sales-api
 
-    - name: Wait for app to start
-      run: sleep 20
-
-    - name: Check running containers
-      run: docker ps
-
-    - name: Show container logs
-      run: docker logs $(docker ps -q)
-
-    - name: Test API
+    # 4. Wait for API to be ready
+    - name: Wait for API
       run: |
-        curl -f http://localhost:8000 || exit 1
+        echo "Waiting for API to start..."
+        for i in {1..12}; do
+          if curl -f http://localhost:8000; then
+            echo "API is up!"
+            exit 0
+          fi
+          echo "Retrying in 5 seconds..."
+          sleep 5
+        done
+        echo "API failed to start"
+        docker logs test-container
+        exit 1
+
+    # 5. Show container logs (for debugging)
+    - name: Show container logs
+      run: docker logs test-container
+
+    # 6. Stop container (cleanup)
+    - name: Stop container
+      if: always()
+      run: docker stop test-container
